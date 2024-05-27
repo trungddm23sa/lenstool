@@ -1,0 +1,55 @@
+import subprocess
+import os
+import time
+import shutil
+
+def prepare_input_file(original_file, temp_file):
+    # Read the original input file
+    with open(original_file, 'r') as file:
+        content = file.readlines()
+
+    # Modify the content if necessary (for this example, we're not making changes)
+    with open(temp_file, 'w') as file:
+        file.writelines(content)
+
+def run_lenstool(input_file, log_file):
+    # Ensure the log file directory exists
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+    # Prepare a temporary input file
+    temp_input_file = "/tmp/temp_A2744_bestopt.par"
+    prepare_input_file(input_file, temp_input_file)
+
+    # Open the log file in append mode
+    with open(log_file, 'w') as log:
+        # Run Lenstool as a subprocess, redirecting stdout and stderr to the log file
+        process = subprocess.Popen(['lenstool', temp_input_file], stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+        
+        print(f"Lenstool is running with PID {process.pid}. Output is being logged to {log_file}.")
+
+        try:
+            # Monitor the log file in real-time
+            with open(log_file, 'r') as log_read:
+                while True:
+                    # Read new lines from the log file
+                    new_lines = log_read.readlines()
+                    if new_lines:
+                        for line in new_lines:
+                            print(line, end='')  # Print new log lines to the console
+                    # Check if the process has terminated
+                    if process.poll() is not None:
+                        break
+                    time.sleep(1)  # Sleep briefly to avoid excessive CPU usage
+
+        except KeyboardInterrupt:
+            print("Monitoring interrupted by user. Exiting...")
+
+        finally:
+            # Ensure the process is terminated
+            process.terminate()
+            print("Lenstool process terminated.")
+
+if __name__ == "__main__":
+    input_file = "/Users/mac8868/Downloads/A2744_bestopt.par"
+    log_file = "/Users/mac8868/Documents/lenstool_output.log"
+    run_lenstool(input_file, log_file)
